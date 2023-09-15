@@ -7,6 +7,7 @@ const {
   verifyRefreshToken,
 } = require('../helpers/jwt_helper')
 const client = require('../helpers/init_redis')
+const TokenController = require('../helpers/jwt_helper')
 
 class AuthController{
 
@@ -27,8 +28,10 @@ class AuthController{
 
       const user = new User(result)
       const savedUser = await user.save()
-      const accessToken = await signAccessToken(savedUser.id)
-      const refreshToken = await signRefreshToken(savedUser.id)
+      
+      const accessToken = await TokenController.signAccessToken(savedUser.id)
+      const refreshToken = await TokenController.signRefreshToken(savedUser.id)
+      
       res.send({ accessToken, refreshToken })
 
     }catch(err){
@@ -62,11 +65,17 @@ class AuthController{
       }
       
       //get access and refresh tokens and return them
-      const accessToken = await signAccessToken(user.id)
-      const refreshToken = await signRefreshToken(user.id)
+      console.log('generating access tokens')
+      const accessToken = await TokenController.signAccessToken(user.id) //this is returning undefined
+      console.log('passed on accessToken')
+      const refreshToken = await TokenController.signRefreshToken(user.id)
+      console.log('passed on refresh token')
+      console.log(accessToken)
       res.send({ accessToken, refreshToken })
     } catch (error) {
 
+      console.log('fail on login')
+      console.error(error.message)
       if (error.isJoi === true){
         return next(createError.BadRequest('Invalid Username/Password'))
       }
@@ -90,8 +99,13 @@ class AuthController{
 
       //get userId and sign tokens, return
       const userId = await verifyRefreshToken(refreshToken)
-      const accessToken = await signAccessToken(userId)
-      const refToken = await signRefreshToken(userId)
+
+      console.log('not fail')
+
+      const accessToken = await TokenController.signAccessToken(userId)
+      console.log('passed access token')
+      const refToken = await TokenController.signRefreshToken(userId)
+      console.log('passed ref token')
       res.send({ accessToken: accessToken, refreshToken: refToken })
     } catch (error) {
       next(error)
@@ -100,10 +114,16 @@ class AuthController{
 
 
   static async logout(req, res, next){
+    
+    console.log('in logout')
+    
     try {
       const { refreshToken } = req.body
       if (!refreshToken) throw createError.BadRequest()
-      const userId = await verifyRefreshToken(refreshToken)
+
+      const userId = await TokenController.verifyRefreshToken(refreshToken)
+      console.log(`got userId ${userId}`)
+
       client.DEL(userId, (err, val) => {
         if (err) {
           console.log(err.message)
