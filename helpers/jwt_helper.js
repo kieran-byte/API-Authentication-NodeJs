@@ -6,7 +6,7 @@ const client = require('./init_redis')
 class TokenController{
 
 
-  static async signAccessToken(userId) {
+  static signAccessToken(userId) {
     const payload = {};
     const secret = process.env.ACCESS_TOKEN_SECRET;
     const options = {
@@ -28,7 +28,7 @@ class TokenController{
 
 
 
-  static async signRefreshToken(userId){
+  static signRefreshToken(userId){
     const payload = {};
     const secret = process.env.REFRESH_TOKEN_SECRET;
     const options = {
@@ -58,7 +58,7 @@ class TokenController{
     }
   }
 
-  static async verifyRefreshToken(refreshToken){
+  static verifyRefreshToken(refreshToken){
     return new Promise((resolve, reject) => {
       jwt.verify(
         refreshToken,

@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken')
 class AuthMethods{
 
     //middleware
-  static async verifyAccessToken(req, res, next){
+  static verifyAccessToken(req, res, next){
 
 
     console.log('middleware entered')
