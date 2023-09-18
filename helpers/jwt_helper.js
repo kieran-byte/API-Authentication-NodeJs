@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken')
 const createError = require('http-errors')
 const client = require('./init_redis')
-
+const util = require('util');
+const { resolve } = require('path');
 
 class TokenController{
 
@@ -58,26 +59,52 @@ class TokenController{
     }
   }
 
-  static verifyRefreshToken(refreshToken){
-    return new Promise((resolve, reject) => {
-      jwt.verify(
-        refreshToken,
-        process.env.REFRESH_TOKEN_SECRET,
-        (err, payload) => {
-          if (err) return reject(createError.Unauthorized())
-          const userId = payload.aud
-          client.GET(userId, (err, result) => {
-            if (err) {
-              console.log(err.message)
-              reject(createError.InternalServerError())
-              return
-            }
-            if (refreshToken === result) return resolve(userId)
-            reject(createError.Unauthorized())
-          })
-        }
-      )
-    })
+  static async verifyRefreshToken(refreshToken){
+    
+    //promisifies the redis GET
+    const getAsync = util.promisify(client.GET).bind(client)
+    try{
+      
+      //decodes token synchronously gets userId then storedToken
+      const payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET)
+      const userId = payload.aud
+      const storedToken = await getAsync(payload.aud)
+
+      //if tokens match, return userId, else fail
+      if(storedToken == refreshToken){
+        return userId
+      }else{
+        return createError.Unauthorized()
+      }
+    }catch(err){
+      //log error then throw upwards
+      console.error(error.message);
+      throw createError.InternalServerError();
+    }
+    
+    
+
+    // return new Promise((resolve, reject) => {
+    //   jwt.verify(
+    //     refreshToken,
+    //     process.env.REFRESH_TOKEN_SECRET,
+    //     (err, payload) => {
+    //       if (err) return reject(createError.Unauthorized())
+    //       const userId = payload.aud
+    //       client.GET(userId, (err, result) => {
+    //         if (err) {
+    //           console.log(err.message)
+    //           reject(createError.InternalServerError())
+    //           return
+    //         }
+    //         if (refreshToken === result){
+    //           return resolve(userId)
+    //         } 
+    //         reject(createError.Unauthorized())
+    //       })
+    //     }
+    //   )
+    // })
   }
     
 }
